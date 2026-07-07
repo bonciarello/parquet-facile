@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Convertitore CSV → Parquet con validazione schema — Analizza, correggi tipi e converti file CSV in Parquet</title>
+  <meta name="description" content="Carica un file CSV, visualizza in anteprima i dati con i tipi rilevati automaticamente, forza i tipi per colonna se necessario e convertilo in formato Parquet. Conversione veloce fino a 50 MB.">
+  <link rel="canonical" href="https://cristianporco.it/app/convertitore-di-file-csv-in-formato-parquet-con-validazione-schema/">
+  <meta property="og:title" content="Convertitore CSV → Parquet con validazione schema">
+  <meta property="og:description" content="Carica un CSV, controlla e correggi i tipi delle colonne, scarica il Parquet. Strumento preciso per data engineer.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://cristianporco.it/app/convertitore-di-file-csv-in-formato-parquet-con-validazione-schema/">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chivo:ital,wght@0,400;0,700;0,900;1,400&family=Inter:ital,opsz,wght@0,14..32,400..600;1,14..32,400..600&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="static/style.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Convertitore CSV → Parquet con validazione schema",
+    "url": "https://cristianporco.it/app/convertitore-di-file-csv-in-formato-parquet-con-validazione-schema/",
+    "description": "Carica un file CSV, visualizza in anteprima i dati con i tipi rilevati, forza i tipi per colonna e converti in formato Parquet.",
+    "applicationCategory": "DataProcessingApplication",
+    "operatingSystem": "Web",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" }
+  }
+  </script>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-inner">
+    <div class="brand">
+      <span class="brand-mono" aria-hidden="true">{csv&nbsp;→&nbsp;parquet}</span>
+      <h1 class="brand-title">Convertitore CSV → Parquet</h1>
+      <p class="brand-sub">Validazione schema interattiva per data engineer</p>
+    </div>
+    <p class="header-byline">Analizza i tipi delle colonne, forza le correzioni, scarica il Parquet — tutto in pochi secondi.</p>
+  </div>
+</header>
+
+<main>
+  <!-- STEP 1: Upload -->
+  <section id="step-upload" class="card" aria-labelledby="upload-heading">
+    <h2 id="upload-heading" class="card-title">
+      <span class="step-badge" aria-hidden="true">1</span>
+      Carica il tuo CSV
+    </h2>
+    <p class="card-desc">Trascina il file nell&rsquo;area sottostante o clicca per selezionarlo. Dimensione massima: 100&nbsp;MB.</p>
+
+    <div id="drop-zone" class="drop-zone" role="button" tabindex="0" aria-label="Carica file CSV — trascina qui o clicca per selezionare">
+      <input type="file" id="file-input" accept=".csv" hidden>
+      <div class="drop-icon" aria-hidden="true">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>
+        </svg>
+      </div>
+      <p class="drop-label"><strong>Scegli un file CSV</strong> &mdash; oppure trascinalo qui</p>
+      <p id="file-name" class="file-name"></p>
+    </div>
+
+    <div id="upload-error" class="error-box" role="alert" hidden></div>
+
+    <div id="upload-progress" class="progress-wrap" hidden>
+      <div class="progress-bar"><div class="progress-fill"></div></div>
+      <p class="progress-label">Analisi dello schema in corso&hellip;</p>
+    </div>
+
+    <button id="analyze-btn" class="btn btn-primary" type="button" disabled>
+      Analizza schema
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+  </section>
+
+  <!-- STEP 2: Preview & Type Override -->
+  <section id="step-preview" class="card" hidden aria-labelledby="preview-heading">
+    <h2 id="preview-heading" class="card-title">
+      <span class="step-badge" aria-hidden="true">2</span>
+      Schema rilevato e anteprima
+    </h2>
+    <p class="card-desc" id="preview-meta"></p>
+
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Anteprima dati — scorri orizzontalmente per vedere tutte le colonne">
+      <table class="data-table" id="preview-table">
+        <thead></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="type-overrides" aria-label="Forza tipo per colonna">
+      <h3 class="subsection-title">Forza i tipi delle colonne</h3>
+      <p class="subsection-desc">Se il rilevamento automatico non corrisponde ai tuoi dati, scegli il tipo corretto dal menu a tendina per ogni colonna. Le celle che non possono essere convertite diventeranno <code>null</code>.</p>
+      <div id="type-fields" class="type-fields-grid"></div>
+    </div>
+
+    <div id="preview-error" class="error-box" role="alert" hidden></div>
+
+    <div class="action-row">
+      <button id="convert-btn" class="btn btn-accent" type="button">
+        Converti in Parquet
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+      </button>
+      <button id="back-btn" class="btn btn-ghost" type="button">
+        &larr; Carica un altro file
+      </button>
+    </div>
+
+    <div id="convert-progress" class="progress-wrap" hidden>
+      <div class="progress-bar"><div class="progress-fill"></div></div>
+      <p class="progress-label">Conversione in corso&hellip;</p>
+    </div>
+  </section>
+
+  <!-- STEP 3: Download -->
+  <section id="step-download" class="card" hidden aria-labelledby="download-heading">
+    <h2 id="download-heading" class="card-title">
+      <span class="step-badge step-badge--done" aria-hidden="true">✓</span>
+      Parquet pronto
+    </h2>
+    <p class="card-desc" id="download-meta"></p>
+
+    <div class="download-area">
+      <div class="download-icon" aria-hidden="true">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" x2="12" y1="18" y2="12"/><polyline points="9 15 12 18 15 15"/>
+        </svg>
+      </div>
+      <button id="download-btn" class="btn btn-accent btn-lg" type="button">
+        Scarica il file Parquet
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+      </button>
+    </div>
+
+    <button id="restart-btn" class="btn btn-ghost" type="button">
+      &larr; Converti un altro file
+    </button>
+  </section>
+</main>
+
+<footer class="app-footer">
+  <p>Conversione locale via <span class="mono">PyArrow</span>. Nessun dato viene conservato dopo il download. I file temporanei sono eliminati automaticamente dopo 1 ora.</p>
+</footer>
+
+<script src="static/script.js"></script>
+</body>
+</html>

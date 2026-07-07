@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://cristianporco.it/app/convertitore-di-file-csv-in-formato-parquet-con-validazione-schema/sitemap.xml

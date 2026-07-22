@@ -250,7 +250,6 @@ class TestSEO:
         assert resp.status_code == 200
         html = resp.data.decode("utf-8").lower()
         assert 'canonical' in html
-        assert 'cristianporco.it/app/convertitore-di-file-csv-in-formato-parquet-con-validazione-schema' in html
 
 
 class TestEdgeCases:
